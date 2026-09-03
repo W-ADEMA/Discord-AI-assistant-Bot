@@ -26,7 +26,6 @@ ai_client = OpenAI(
 ### Functions
 
 # Get AI model name
-
 def get_model_name():
     models = ai_client.models.list()
     
@@ -36,7 +35,6 @@ def get_model_name():
     return models.data[0].id
 
 # Config file
-
 def load_config():
     """Load configuration from config.json."""
 
@@ -86,16 +84,15 @@ async def set_personality(
 ### Bot events
 
 # Load bot
-
 @client.event
 async def on_ready():
     await tree.sync()
     print(f"Logged in as {client.user}")
 
 # Prompt AI
-
 @client.event
 async def on_message(message):
+    # Ignore message sent by the bot itself
     if message.author == client.user:
         return
 
@@ -104,9 +101,36 @@ async def on_message(message):
 
         if not text:
             return
-        
-        model_name = get_model_name()
 
+        # Check if the message is a reply
+        replied_text = None
+
+        if message.reference and message.reference.message_id:
+
+            try:
+                replied_message = await message.channel.fetch_message(
+                    message.reference.message_id
+                )
+
+                replied_text = replied_message.content
+            except discord.NotFound:
+                replied_text = None
+
+        # Build the prompt
+        if replied_text:
+            prompt = (
+                f"The user is replying to this message:\n\n"
+                f"--- Message being replied to ---\n"
+                f"{replied_text}\n"
+                f"--- End message ---\n\n"
+                f"The user's reply is:\n"
+                f"{text}"
+            )
+        else:
+            prompt = text
+
+        # Send the prompt
+        model_name = get_model_name()
         if model_name:
             async with message.channel.typing():
                 response = await asyncio.to_thread(
@@ -114,7 +138,7 @@ async def on_message(message):
                     model=model_name,
                     messages=[
                         {"role": "system", "content": config["personality"]},
-                        {"role": "user", "content": text}
+                        {"role": "user", "content": prompt}
                     ]
                 )
             await message.channel.send(response.choices[0].message.content)
