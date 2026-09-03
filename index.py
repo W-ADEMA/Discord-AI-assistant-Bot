@@ -108,14 +108,15 @@ async def on_message(message):
         model_name = get_model_name()
 
         if model_name:
-            response = await asyncio.to_thread(
-                ai_client.chat.completions.create,
-                model=model_name,
-                messages=[
-                    {"role": "system", "content": config["personality"]},
-                    {"role": "user", "content": text}
-                ]
-            )
+            async with message.channel.typing():
+                response = await asyncio.to_thread(
+                    ai_client.chat.completions.create,
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": config["personality"]},
+                        {"role": "user", "content": text}
+                    ]
+                )
             await message.channel.send(response.choices[0].message.content)
 
 client.run(TOKEN)
