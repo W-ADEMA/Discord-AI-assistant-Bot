@@ -141,6 +141,14 @@ async def on_message(message):
                         {"role": "user", "content": prompt}
                     ]
                 )
-            await message.channel.send(response.choices[0].message.content)
+
+            ai_message = response.choices[0].message.content
+            if len(ai_message) > 2000:
+                await message.channel.send(
+                    f"Error: The AI response is too long to send to Discord "
+                    f"({len(ai_message)} characters, maximum is 2000)."
+                )
+            else:
+                await message.channel.send(ai_message)
 
 client.run(TOKEN)
